@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "notify-telegram": {
+      "commandName": "Project",
+      "commandLineArgs": "\"Test message\""
+    }
+  }
+}
