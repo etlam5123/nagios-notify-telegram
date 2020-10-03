@@ -13,9 +13,26 @@ namespace notify_telegram
         private static Object _configlock = new Object();
         private static DateTime lastMessage;
         private static ITelegramBotClient botClient;
-        private static string configpath = Path.Combine(new string[] { Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "notify-telegram-config.json" });
+        private static string configpath = "";
         static void Main(string[] args)
         {
+            if (Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) != "")
+            {
+                configpath = Path.Combine(new string[] { Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "notify-telegram-config.json" });
+                
+            }
+            else
+            {
+                if (Directory.Exists("/usr/local/nagios/etc"))
+                {
+                    configpath = Path.Combine(new string[] { "/usr/local/nagios/etc", "notify-telegram-config.json" });
+                }
+                else
+                {
+                    configpath = "notify-telegram-config.json";
+                }
+            }
+
             try
             {
                 if (File.Exists(configpath))
@@ -45,7 +62,7 @@ namespace notify_telegram
             }
 
 
-            string message = args[0];
+            string message = args[0].Replace("\\n", Environment.NewLine);
             //string title = args[1];
 
             try
@@ -61,8 +78,8 @@ namespace notify_telegram
 
                 do
                 {
-                    Thread.Sleep(1000);
-                } while ((DateTime.Now - lastMessage).TotalSeconds < 10);
+                    Thread.Sleep(100);
+                } while ((DateTime.Now - lastMessage).TotalMilliseconds < 1000);
 
                 botClient.StopReceiving();
 
@@ -70,7 +87,7 @@ namespace notify_telegram
 
                 foreach (long user in config.ChatMembers)
                 {
-                    _ = botClient.SendTextMessageAsync(user, message).Result;
+                    _ = botClient.SendTextMessageAsync(user, message, Telegram.Bot.Types.Enums.ParseMode.Markdown).Result;
                     Console.WriteLine("Sent to " + user.ToString());
                 }
             }
@@ -86,6 +103,7 @@ namespace notify_telegram
             lock(_configlock)
                 File.WriteAllText(configpath, JsonConvert.SerializeObject(config));
         }
+
 
         private static async void Bot_OnMessage(object sender, MessageEventArgs e)
         {
